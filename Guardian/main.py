@@ -822,7 +822,12 @@ def clone(update: Update, context: CallbackContext):
 
         clone_dispatcher.add_handler(CommandHandler("start", start))
         clone_dispatcher.add_handler(MessageHandler(Filters.update.edited_message, check_edit))
-        clone_dispatcher.add_handler(MessageHandler(Filters.chat_type.groups & (Filters.text | Filters.photo | Filters.video | Filters.animation | Filters.sticker | Filters.document), check_security_violation))
+        clone_dispatcher.add_handler(MessageHandler(
+        Filters.chat_type.groups &
+        ~Filters.command &
+        (Filters.text | Filters.photo | Filters.video | Filters.animation | Filters.sticker | Filters.document),
+        check_security_violation
+    ))
         clone_dispatcher.add_handler(CommandHandler("setmode", setmode_command))
         clone_dispatcher.add_handler(CommandHandler("settings", settings_command))
         clone_dispatcher.add_handler(CommandHandler("addsudo", add_sudo))
@@ -874,7 +879,12 @@ def main():
     # Register handlers
     dispatcher.add_handler(CommandHandler("start", start))
     dispatcher.add_handler(MessageHandler(Filters.update.edited_message, check_edit))
-    dispatcher.add_handler(MessageHandler(Filters.chat_type.groups & (Filters.text | Filters.photo | Filters.video | Filters.animation | Filters.sticker | Filters.document), check_security_violation))
+    dispatcher.add_handler(MessageHandler(
+        Filters.chat_type.groups &
+        ~Filters.command &
+        (Filters.text | Filters.photo | Filters.video | Filters.animation | Filters.sticker | Filters.document),
+        check_security_violation
+    ))
     dispatcher.add_handler(CommandHandler("setmode", setmode_command))
     dispatcher.add_handler(CommandHandler("settings", settings_command))
     dispatcher.add_handler(CommandHandler("addsudo", add_sudo))
