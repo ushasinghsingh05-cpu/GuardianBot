@@ -1,7 +1,7 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
 PM_START_TEXT = """
-Hello {} 👋 I'm your Security & Edit Guardian Bot, designed to keep your Telegram groups safe, clean, and transparent.
+Hello {} 👋 I'm your Ayu Guardian Bot, designed to keep your Telegram groups safe, clean, and transparent.
 
 🛡️ Banword Protection: I automatically detect and delete messages containing 18+, abusive, or prohibited content.
 
@@ -23,11 +23,11 @@ def start_buttons(bot_username):
             ),
         ],
         [
-            InlineKeyboardButton(text="Support", url="https://t.me/urstarkz"),
+            InlineKeyboardButton(text="Support", url="https://t.me/too_EGOistiC"),
             InlineKeyboardButton(text="Source", url="https://github.com/urstark/Guardian"),
         ],    
         [
-            InlineKeyboardButton(text="Owner", url="https://t.me/urstarkz"),
+            InlineKeyboardButton(text="Owner", url="https://t.me/too_EGOistiC"),
         ],
     ]
 
