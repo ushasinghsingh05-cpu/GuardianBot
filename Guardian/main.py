@@ -565,6 +565,91 @@ def analyze_nsfw_media(msg, bot):
 
     return False
 
+def is_nsfw_sticker(msg):
+    """Detect explicit/18+ stickers from Telegram sticker metadata."""
+    if not msg or not msg.sticker:
+        return False
+    sticker = msg.sticker
+    set_name = getattr(sticker, "set_name", "") or ""
+    emoji = getattr(sticker, "emoji", "") or ""
+    metadata = f"{set_name} {emoji}".lower()
+    nsfw_terms = [
+        "18+", "18plus", "18_plus", "adult", "porn", "nsfw", "sex",
+        "nude", "xxx", "boobs", "fuck", "blowjob", "onlyfans"
+    ]
+    return any(term in metadata for term in nsfw_terms) or bool(BAD_PATTERN.search(metadata))
+
+
+def analyze_nsfw_sticker(sticker, bot):
+    """Analyze a Telegram sticker thumbnail with Sightengine.
+
+    Handles normal image stickers and video/animated stickers when Telegram
+    provides a thumbnail. This is much stronger than relying only on sticker
+    set names/emoji.
+    """
+    if not sticker:
+        return False
+
+    thumb = getattr(sticker, "thumb", None)
+    if not thumb:
+        return False
+
+    try:
+        tg_file = safe_api_call(bot.get_file, thumb.file_id)
+        if not tg_file:
+            return False
+
+        file_bytes = safe_api_call(tg_file.download_as_bytearray)
+        if not file_bytes:
+            return False
+
+        api_user = SIGHTENGINE_USER or "1211514755"
+        api_secret = SIGHTENGINE_SECRET or "dzzBcwTzT22q9364k7M3mct5kS85d4T5"
+
+        # Sightengine's nudity model is used for explicit/18+ detection.
+        response = requests.post(
+            "https://api.sightengine.com/1.0/check.json",
+            data={
+                "models": "nudity-2.0,offensive,wad",
+                "api_user": api_user,
+                "api_secret": api_secret,
+            },
+            files={"media": ("sticker.jpg", bytes(file_bytes), "image/jpeg")},
+            timeout=10,
+        )
+
+        if response.status_code != 200:
+            logger.warning(
+                f"Sightengine sticker check returned {response.status_code}: "
+                f"{response.text[:300]}"
+            )
+            return False
+
+        data = response.json()
+        nudity = data.get("nudity", {}) or {}
+
+        # Conservative thresholds for explicit/18+ content.
+        raw = float(nudity.get("raw", 0.0) or 0.0)
+        partial = float(nudity.get("partial", 0.0) or 0.0)
+        suggestive = float(nudity.get("suggestive", 0.0) or 0.0)
+
+        if raw >= 0.18 or partial >= 0.35 or suggestive >= 0.65:
+            return True
+
+        # Catch obvious offensive sexual imagery where the nudity model may
+        # not classify it strongly enough.
+        offensive = data.get("offensive", {}) or {}
+        if isinstance(offensive, dict):
+            offensive_prob = float(offensive.get("prob", 0.0) or 0.0)
+            if offensive_prob >= 0.85 and (raw >= 0.08 or partial >= 0.15):
+                return True
+
+    except Exception as e:
+        logger.warning(f"Sticker NSFW analysis failed: {e}")
+
+    return False
+
+
 def check_security_violation(update: Update, context: CallbackContext):
     msg = update.effective_message
     if not msg:
@@ -583,8 +668,17 @@ def check_security_violation(update: Update, context: CallbackContext):
 
     text = msg.text or msg.caption or ""
     is_nsfw = analyze_nsfw_text(text)
-    
-    if not is_nsfw and (msg.photo or msg.video or msg.animation or msg.sticker or msg.document):
+
+    if not is_nsfw and msg.sticker:
+        is_nsfw = is_nsfw_sticker(msg)
+        if not is_nsfw:
+            is_nsfw = analyze_nsfw_sticker(msg.sticker, context.bot)
+
+    # Detect explicit/18+ stickers using Telegram sticker metadata.
+    if not is_nsfw and msg.sticker:
+        is_nsfw = is_nsfw_sticker(msg)
+
+    if not is_nsfw and (msg.photo or msg.video or msg.animation or msg.document):
         is_nsfw = analyze_nsfw_media(msg, context.bot)
 
     if not is_nsfw:
