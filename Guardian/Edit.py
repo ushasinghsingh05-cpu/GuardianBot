@@ -23,11 +23,11 @@ def start_buttons(bot_username):
             ),
         ],
         [
-            InlineKeyboardButton(text="Support", url="https://t.me/too_EGOistiC"),
+            InlineKeyboardButton(text="Support", url="https://t.me/thakurayu2955"),
             InlineKeyboardButton(text="Source", url="https://github.com/urstark/Guardian"),
         ],    
         [
-            InlineKeyboardButton(text="Owner", url="https://t.me/too_EGOistiC"),
+            InlineKeyboardButton(text="Owner", url="https://t.me/thakurayu2955"),
         ],
     ]
 
